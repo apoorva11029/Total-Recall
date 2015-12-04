@@ -6,6 +6,8 @@ import codecs
 from datetime import datetime
 from time import mktime
 from config import CONSUMER_KEY,CONSUMER_SECRET,ACCESS_TOKEN,ACCESS_TOKEN_SECRET
+import urllib
+import requests
 
 
 
@@ -28,11 +30,23 @@ count=1000
 pages=500
 filename="tweets1.json"
 
+def getloc(locname):
+    if locname:
+        url="https://maps.googleapis.com/maps/api/geocode/json?address="+locname
+        response = requests.get(url)
+        jsonvalues = response.json()
+        if jsonvalues['status']=="OK":
+            locvalue=jsonvalues['results'][0]['geometry']['location']
+            return [locvalue['lat'],locvalue['lng']]
+    return "Null"
+
 for lang in langs:
     for query in querys:
         for tweets in tweepy.Cursor(api.search, q=query.encode('utf-8'),lang=lang, count=count).pages(pages):
             for tweet in tweets:
                 tweet_data = {}
+                if (not tweet.text.find("RT")) or  (not tweet.entities.get('hashtags')):
+                        continue
                 tweet_data['id'] = str(tweet.id)
                 tweet_data['text'] = tweet.text
                 hashtagData  = tweet.entities.get('hashtags')
@@ -56,7 +70,7 @@ for lang in langs:
                 tweet_data['created_at'] = str(temp.strftime('%A, %B %d, %Y %H:%M:%S'))
                 tweet_data['retweet_count'] = tweet.retweet_count
                 tweet_data['timezone'] = tweet.user.time_zone
-                tweet_data['location'] = tweet.user.location
+                tweet_data['location'] = getloc(tweet.user.location)
                 if tweet.place:
                     tweet_data['place'] = tweet.place.country
                 tweet_data["favorite_count"]=tweet.favorite_count
@@ -64,3 +78,4 @@ for lang in langs:
                 with codecs.open(filename,'a', encoding='utf-8') as f:
                     json.dump(tweet_data,f,ensure_ascii=False)
                     f.write('\n')
+
