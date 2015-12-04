@@ -6,10 +6,8 @@ import codecs
 from datetime import datetime
 from time import mktime
 from config import CONSUMER_KEY,CONSUMER_SECRET,ACCESS_TOKEN,ACCESS_TOKEN_SECRET
-import urllib
-import requests
 
-
+from alchemyapi import AlchemyAPI
 
 class MyEncoder(json.JSONEncoder):
 
@@ -26,29 +24,71 @@ api = tweepy.API(auth)
 
 querys = ['pray4paris','Le Carillon','Eagles of Death Metal','portesouvertes','théâtre Bataclan']
 langs=["en"]
-count=1000
-pages=500
+count=10
+pages=2
 filename="tweets1.json"
 
-def getloc(locname):
-    if locname:
-        url="https://maps.googleapis.com/maps/api/geocode/json?address="+locname
-        response = requests.get(url)
-        jsonvalues = response.json()
-        if jsonvalues['status']=="OK":
-            locvalue=jsonvalues['results'][0]['geometry']['location']
-            return [locvalue['lat'],locvalue['lng']]
-    return "Null"
+alchemyapi = AlchemyAPI()
 
 for lang in langs:
     for query in querys:
         for tweets in tweepy.Cursor(api.search, q=query.encode('utf-8'),lang=lang, count=count).pages(pages):
             for tweet in tweets:
                 tweet_data = {}
-                if (not tweet.text.find("RT")) or  (not tweet.entities.get('hashtags')):
-                        continue
                 tweet_data['id'] = str(tweet.id)
                 tweet_data['text'] = tweet.text
+				
+				#Alchemy stuff: 
+				response = alchemyapi.entities('text', tweet.text, {'sentiment': 1})
+				ent={};
+				ent_rele={};
+				ent_type={}
+				i=0
+				if response['status'] == 'OK':
+					
+					for entity in response['entities']:
+						ent[i]=entity['text'].encode('utf-8')
+						ent_rele[i]=entity['relevance']
+						ent_type[i]=entity['type']
+						i=i+1
+						
+				else:
+					print('Error in entity extraction call: ', response['statusInfo'])
+								
+				response = alchemyapi.sentiment("text", tweet.text)
+				senti=response["docSentiment"]["type"]
+
+				keywords={}
+				response = alchemyapi.keywords('text', tweet.text, {'sentiment': 1})
+				i=0
+				if response['status'] == 'OK':
+					
+					for word in response["keywords"]:
+						keywords[i]=word['text'].encode('utf-8')
+						
+						
+						i=i+1
+						
+				else:
+					print('Error in entity extraction call: ', response['statusInfo'])
+					
+
+				response=alchemyapi.concepts("text",tweet.text)
+				concept={}
+				i=0
+				if response['status'] == 'OK':
+					
+					for con in response["concepts"]:
+						
+						concept[i]=con['text'].encode('utf-8')
+						
+						
+						i=i+1
+						
+				else:
+					print('Error in entity extraction call: ', response['statusInfo'])
+					
+				tweet_data['entities']=ent
                 hashtagData  = tweet.entities.get('hashtags')
                 hashtagList = []
                 if not hashtagData:
@@ -70,7 +110,7 @@ for lang in langs:
                 tweet_data['created_at'] = str(temp.strftime('%A, %B %d, %Y %H:%M:%S'))
                 tweet_data['retweet_count'] = tweet.retweet_count
                 tweet_data['timezone'] = tweet.user.time_zone
-                tweet_data['location'] = getloc(tweet.user.location)
+                tweet_data['location'] = tweet.user.location
                 if tweet.place:
                     tweet_data['place'] = tweet.place.country
                 tweet_data["favorite_count"]=tweet.favorite_count
@@ -78,4 +118,3 @@ for lang in langs:
                 with codecs.open(filename,'a', encoding='utf-8') as f:
                     json.dump(tweet_data,f,ensure_ascii=False)
                     f.write('\n')
-
