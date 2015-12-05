@@ -42,16 +42,15 @@ for lang in langs:
 		#Alchemy Stuff:
                 response = alchemyapi.entities('text', tweet.text, {'sentiment': 1})
                 size=len(response['entities'])
-                print response['entities']
-                print tweet.text
+                
                 ent=[None]*size
                 ent_rele=[None]*size
                 ent_type=[None]*size
                 i=0
                 if response['status'] == 'OK':
                     for entity in response['entities']:
-                        
-                        ent[i]=(entity['text'].encode('utf-8'))
+                        print (ent)
+                        ent[i]=json.dumps(entity['text'])
                         ent_rele[i]=(entity['relevance'])
                         ent_type[i]=(entity['type'])
                         #print entity
