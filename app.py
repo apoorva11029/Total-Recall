@@ -1,5 +1,6 @@
 #!venv/bin/python
 
+import json
 import requests
 from flask import Flask, jsonify
 from flask import abort
@@ -16,14 +17,15 @@ from textblob import TextBlob
 app = Flask(__name__)
 CORS(app)
 
-
 @app.route('/search/<string:query>', methods=['GET'])
 def search(query):
-	b = TextBlob(u""+query+"")
-	language_id = b.detect_language()
-	connection = urlopen('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*'+query+'*&qf=text_'+ language_id +'^1+hashtags^1+concept^0.1+keywords^1&wt=json')
-	response = simplejson.load(connection)
-	lang="".join('text_'+ language_id)
+	with open('data.json') as data_file:
+	    data = json.load(data_file)
+	# b = TextBlob(u""+query+"")
+	# language_id = b.detect_language()
+	# connection = urlopen('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*'+query+'*&qf=text_'+ language_id +'^1+hashtags^1+concept^0.1+keywords^1&wt=json')
+	# response = simplejson.load(connection)
+	# lang="".join('text_'+ language_id)
 	# print (response['response']['docs'][0][])
 	# print response[0]['text_en']
 	returnArr={}
@@ -58,7 +60,7 @@ def search(query):
 # 	#for document in response['response']['docs']:
 #   	#	print document['text_en']	
 # 	return make_response(jsonify(response))	
-	#return make_response(jsonify({'name': query+"shit"}))
+# 	#return make_response(jsonify({'name': query+"shit"}))
 
 # @app.route('/search2/<string:query>', methods=['GET'])
 # def search2(query):
