@@ -23,8 +23,8 @@ def search(query):
 	#print gs.get_languages()[language_id] #German
 	#print language_id #de	='
 	# Example Query : http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*attack*&qf=text_en^3+tweet_hashtags^2+keywords^2&wt=json
-	b = TextBlob(u""+query+"")
-	language_id = b.detect_language()	
+	b = TextBlob(u"query")
+	print b.detect_language()	
 	connection = urlopen('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*'+query+'*&qf=text_'+ language_id +'^1+hashtags^1+concept^0.1+keywords^1&wt=json')
 	response = simplejson.load(connection)
 	#print response['response']['numFound'], "documents found."
