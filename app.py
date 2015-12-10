@@ -17,14 +17,20 @@ from textblob import TextBlob
 app = Flask(__name__)
 CORS(app)
 
-@app.route('/search/<string:query>', methods=['GET'])
+@app.route('/search', methods=['GET'])
 def search(query):
-	with open('data.json') as data_file:
-	    data = simplejson.load(data_file)
+	#with open('data.json') as data_file:
+	#    data = simplejson.load(data_file)
+	query = request.args.get('query')
+	rowno = request.args.get('row')
+	b = TextBlob(u""+query+"")
+	language_id = b.detect_language()	
+	connection = urlopen('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*'+query+'*&rows=10&start='+rowno+'&sort=name asc&qf=text_'+ language_id +'^1+hashtags^1+concept^0.1+keywords^1&wt=json&facet=true&facet.field=text_'+language_id)
+	response = simplejson.load(connection)
 	returnArr={}
 	tweets=[]
 	locations=[]
-	for tweet in data['response']:
+	for tweet in response['response']['docs']:
 		tempd={}
 		tempd['text']=tweet['text']
 		tempd['user_dp']=tweet['user_dp']
