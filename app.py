@@ -20,29 +20,23 @@ CORS(app)
 @app.route('/search/<string:query>', methods=['GET'])
 def search(query):
 	with open('data.json') as data_file:
-	    data = json.load(data_file)
-	# b = TextBlob(u""+query+"")
-	# language_id = b.detect_language()
-	# connection = urlopen('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*'+query+'*&qf=text_'+ language_id +'^1+hashtags^1+concept^0.1+keywords^1&wt=json')
-	# response = simplejson.load(connection)
-	# lang="".join('text_'+ language_id)
-	# print (response['response']['docs'][0][])
-	# print response[0]['text_en']
+	    data = simplejson.load(data_file)
 	returnArr={}
-	locations=[]
 	tweets=[]
-	for tweet in response['response']['docs']:
+	locations=[]
+	for tweet in data['response']:
 		tempd={}
-		tempd['text']==tweet[lang]
-		# tempd['picid']=tweet['']
-		# tempd['screenhandle']=tweet
+		tempd['text']=tweet['text']
+		tempd['user_dp']=tweet['user_dp']
+		tempd['user_name']=tweet['user_name']
 		tweets.append(tempd)
-		locations.append({tweets['locationCoordinates'][0],tweets['locationCoordinates'][1]})
+		if tweet['locationCoordinates']:
+			locations.append([tweet['locationCoordinates'][0],tweet['locationCoordinates'][1]])
 	returnArr['tweets']=tweets
 	returnArr['locations']=locations
 	#returnArr['people']=people
 	#returnArr['relate_terms']=relatedterms
-	return make_response(jsonify(response))
+	return make_response(json.dumps(returnArr))
 
 # @app.route('/search/<string:query>', methods=['GET'])
 # def search(query):
