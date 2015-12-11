@@ -18,26 +18,27 @@ app = Flask(__name__)
 CORS(app)
 
 @app.route('/search', methods=['GET'])
-def search(query):
-	#with open('data.json') as data_file:
-	#    data = simplejson.load(data_file)
-	query = request.args.get('query')
+def search():
+	query = request.args.get('q')
 	rowno = request.args.get('row')
 	b = TextBlob(u""+query+"")
-	language_id = b.detect_language()	
-	connection = urlopen('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*'+query+'*&rows=10&start='+rowno+'&sort=name asc&qf=text_'+ language_id +'^1+hashtags^1+concept^0.1+keywords^1&wt=json&facet=true&facet.field=text_'+language_id)
-	response = simplejson.load(connection)
+	language_id = b.detect_language()
+
+	connection = requests.get('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*'+query+'*&qf=text_'+ language_id +'^1+hashtags^1+concept^0.1+keywords^1&wt=json&facet=true&facet.field=text_'+language_id)
+	# connection = requests.get('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*paris*&rows=1&start=1&sort=name asc&qf=text_en^1+hashtags^1+concept^0.1+keywords^1&wt=json&facet=true&facet.field=text_en')
+	response = json.loads(json.dumps(connection.json()))
+	# print json.loads(json.dumps(response))['response']['docs'][0]['text_en']
 	returnArr={}
 	tweets=[]
 	locations=[]
 	for tweet in response['response']['docs']:
 		tempd={}
-		tempd['text']=tweet['text']
+		tempd['text']=tweet['text_'+language_id]
 		tempd['user_dp']=tweet['user_dp']
 		tempd['user_name']=tweet['user_name']
 		tweets.append(tempd)
-		if tweet['locationCoordinates']:
-			locations.append([tweet['locationCoordinates'][0],tweet['locationCoordinates'][1]])
+		if tweet['locationCoordinates'] and len(tweet['locationCoordinates'])==2:
+			locations.append([float(tweet['locationCoordinates'][0]),float(tweet['locationCoordinates'][1])])
 	returnArr['tweets']=tweets
 	returnArr['locations']=locations
 	#returnArr['people']=people
