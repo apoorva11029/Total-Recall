@@ -24,7 +24,7 @@ def search():
 	b = TextBlob(u""+query+"")
 	language_id = b.detect_language()
 
-	connection = requests.get('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*'+query+'*&qf=text_'+ language_id +'^1+hashtags^1+concept^0.1+keywords^1&wt=json&facet=true&facet.field=text_'+language_id)
+	connection = requests.get('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*'+query+'*&rows=10000&start=0&sort=name asc&qf=text_'+ language_id +'^1+hashtags^1+concept^0.1+keywords^1&wt=json&facet=true&facet.field=text_'+language_id)
 	# connection = requests.get('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*paris*&rows=1&start=1&sort=name asc&qf=text_en^1+hashtags^1+concept^0.1+keywords^1&wt=json&facet=true&facet.field=text_en')
 	response = json.loads(json.dumps(connection.json()))
 	# print json.loads(json.dumps(response))['response']['docs'][0]['text_en']
