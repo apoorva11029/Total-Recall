@@ -1,5 +1,6 @@
 #!venv/bin/python
 
+import json
 import requests
 from flask import Flask, jsonify
 from flask import abort
@@ -16,61 +17,81 @@ from textblob import TextBlob
 app = Flask(__name__)
 CORS(app)
 
-
-@app.route('/search/<string:query>', methods=['GET'])
-def search(query):
+@app.route('/search', methods=['GET'])
+def search():
+	query = request.args.get('q')
+	rowno = request.args.get('row')
 	b = TextBlob(u""+query+"")
-	language_id = b.detect_language()
-	connection = urlopen('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*'+query+'*&qf=text_'+ language_id +'^1+hashtags^1+concept^0.1+keywords^1&wt=json')
-	response = simplejson.load(connection)
-	lang="".join('text_'+ language_id)
-	# print (response['response']['docs'][0][])
-	# print response[0]['text_en']
+	language_id=""
+	try:
+		language_id = b.detect_language()
+		connection = requests.get('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*'+query+'*&rows=10000&start=0&sort=rank+desc&qf=text_'+ language_id +'^1+hashtags^1+concept^0.1+keywords^1&wt=json&facet=true&facet.field=text_'+language_id)
+	except Exception:
+		connection = requests.get('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*'+query+'*&rows=10000&start=0&sort=rank+desc&qf=text^1+hashtags^1+concept^0.1+keywords^1&wt=json&facet=true&facet.field=text')
+	response = json.loads(json.dumps(connection.json()))
 	returnArr={}
-	locations=[]
 	tweets=[]
+	locations=[]
+	if response['response']['numFound']==0:
+		return  make_response(jsonify({'status':200,'numFound':0}))
 	for tweet in response['response']['docs']:
 		tempd={}
-		tempd['text']==tweet[lang]
-		# tempd['picid']=tweet['']
-		# tempd['screenhandle']=tweet
+		if 'text_'+language_id in tweet:
+			tempd['text']=tweet['text_'+language_id]
+		elif 'text_en' in tweet:
+			tempd['text']=tweet['text_en']
+		elif 'text_fr' in tweet:
+			tempd['text']=tweet['text_fr']
+		elif 'text_ar' in tweet:
+			tempd['text']=tweet['text_ar']
+		elif 'text_ru' in tweet:
+			tempd['text']=tweet['text_ru']
+		tempd['user_dp']=tweet['user_dp']
+		tempd['user_name']=tweet['user_name']
+		tempd['retweet_count']=tweet['retweet_count']
+		tempd['followers_count']=tweet['followers_count']
+		tempd['favorite_count']=tweet['favorite_count']
+		if 'ent_type' in tweets:
+			d={}
+			for i in xrange(len(tweet['ent_type'])):
+				d[tweet['ent_type'][i]]=tweet['entities'][i]
+			tempd['entities']=d
+		if float(tweet['sentiment']) >0:
+			tempd['sentiment']= "Positive"
+		elif float(tweet['sentiment']) <0:
+			tempd['sentiment'] ="Negative"
+		else:
+			tempd['sentiment']="Neutral"
 		tweets.append(tempd)
-		locations.append({tweets['locationCoordinates'][0],tweets['locationCoordinates'][1]})
+		if tweet['locationCoordinates'] and len(tweet['locationCoordinates'])==2:
+			locations.append([float(tweet['locationCoordinates'][0]),float(tweet['locationCoordinates'][1])])
 	returnArr['tweets']=tweets
 	returnArr['locations']=locations
-	#returnArr['people']=people
-	#returnArr['relate_terms']=relatedterms
-	return make_response(jsonify(response))
+	facet=[]
+	for x in response['facet_counts']['facet_fields']['text_en']:
+		if type(x)==int or ("https" in x) or ("RT" in x) or ("rt" in x) or x==query or x.isdigit():
+			continue
+		if len(facet)>=10:
+			break
+		facet.append(x)
+	returnArr['facet_fields']=facet
+	return make_response(json.dumps(returnArr))
 
-# @app.route('/search/<string:query>', methods=['GET'])
-# def search(query):
-# 	#gs = goslate.Goslate()
-# 	#language_id = gs.detect(query)
-# 	#print gs.get_languages()[language_id] #German
-# 	#print language_id #de	='
-# 	# Example Query : http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*attack*&qf=text_en^3+tweet_hashtags^2+keywords^2&wt=json
-# 	b = TextBlob(u""+query+"")
-# 	language_id = b.detect_language()	
-# 	connection = urlopen('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*'+query+'*&qf=text_'+ language_id +'^1+hashtags^1+concept^0.1+keywords^1&wt=json')
-# 	response = simplejson.load(connection)
-# 	#print response['response']['numFound'], "documents found."
-# 	#print response
-# 	#for document in response['response']['docs']:
-#   	#	print document['text_en']	
-# 	return make_response(jsonify(response))	
-	#return make_response(jsonify({'name': query+"shit"}))
 
-# @app.route('/search2/<string:query>', methods=['GET'])
-# def search2(query):
-# 	gs = goslate.Goslate()
-# 	language_id = gs.detect(query)
-# 	#print gs.get_languages()[language_id] #German
-# 	#print language_id #de	
-# 	# create a connection to a solr server
-# 	s = solr.SolrConnection('http://athigale.koding.io:8983/solr/projc/')
-# 	# do a search
-# 	response = s.query('hashtags:'+query)
-# 	return make_response(jsonify(response))
+@app.route('/trendingTopics', methods=['GET'])
+def trendingTopics():
+	connection = requests.get('http://athigale.koding.io:8983/solr/projc/select?q=*%3A*&sort=retweet_count+desc%2Ccreated_at+desc&start=0&rows=1000&wt=json&indent=true&facet=true&facet.field=text_en')
+	response = json.loads(json.dumps(connection.json()))
+	returnArr={}
+	trending=[]
+	for x in response['facet_counts']['facet_fields']['text_en']:
+		if type(x)==int or ("https" in x) or ("RT" in x) or ("rt" in x) or x.isdigit():
+			continue
+		if len(trending)>=10:
+			break
+		trending.append(x)
+	returnArr['trending']=trending
+	return make_response(json.dumps(returnArr))
 
 @app.errorhandler(404)
 def not_found(error):
