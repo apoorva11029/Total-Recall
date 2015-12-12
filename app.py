@@ -69,7 +69,7 @@ def search():
 	returnArr['tweets']=tweets
 	returnArr['locations']=locations
 	facet=[]
-	for x in response['facet_counts']['facet_fields']['text_en']:
+	for x in response['facet_counts']['facet_fields']['text']:
 		if type(x)==int or ("https" in x) or ("RT" in x) or ("rt" in x) or x==query or x.isdigit():
 			continue
 		if len(facet)>=10:
@@ -81,11 +81,11 @@ def search():
 
 @app.route('/trendingTopics', methods=['GET'])
 def trendingTopics():
-	connection = requests.get('http://athigale.koding.io:8983/solr/projc/select?q=*%3A*&sort=retweet_count+desc%2Ccreated_at+desc&start=0&rows=1000&wt=json&indent=true&facet=true&facet.field=text_en')
+	connection = requests.get('http://athigale.koding.io:8983/solr/projc/select?q=*%3A*&sort=retweet_count+desc%2Ccreated_at+desc&start=0&rows=1000&wt=json&indent=true&facet=true&facet.field=text')
 	response = json.loads(json.dumps(connection.json()))
 	returnArr={}
 	trending=[]
-	for x in response['facet_counts']['facet_fields']['text_en']:
+	for x in response['facet_counts']['facet_fields']['text']:
 		if type(x)==int or ("https" in x) or ("RT" in x) or ("rt" in x) or x.isdigit():
 			continue
 		if len(trending)>=10:
