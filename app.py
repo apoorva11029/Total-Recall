@@ -51,6 +51,7 @@ def search():
 		tempd['retweet_count']=tweet['retweet_count']
 		tempd['followers_count']=tweet['followers_count']
 		tempd['favorite_count']=tweet['favorite_count']
+		tempd['date']=tweet['created_at']
 		if 'ent_type' in tweet:
 			d={}
 			for i in xrange(len(tweet['ent_type'])):
