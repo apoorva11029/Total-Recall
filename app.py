@@ -22,55 +22,54 @@ def search():
 	query = request.args.get('q')
 	rowno = request.args.get('row')
 	b = TextBlob(u""+query+"")
-	language_id = b.detect_language()
-
-	connection = requests.get('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*'+query+'*&rows=10000&start=0&sort=name asc&qf=text_'+ language_id +'^1+hashtags^1+concept^0.1+keywords^1&wt=json&facet=true&facet.field=text_'+language_id)
+	language_id=""
+	try:
+		language_id = b.detect_language()
+		connection = requests.get('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*'+query+'*&rows=10000&start=0&sort=rank+desc&qf=text_'+ language_id +'^1+hashtags^1+concept^0.1+keywords^1&wt=json&facet=true&facet.field=text_'+language_id)
+	except Exception:
+		connection = requests.get('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*'+query+'*&rows=10000&start=0&sort=rank+desc&qf=text^1+hashtags^1+concept^0.1+keywords^1&wt=json&facet=true&facet.field=text')
 	# connection = requests.get('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*paris*&rows=1&start=1&sort=name asc&qf=text_en^1+hashtags^1+concept^0.1+keywords^1&wt=json&facet=true&facet.field=text_en')
 	response = json.loads(json.dumps(connection.json()))
 	# print json.loads(json.dumps(response))['response']['docs'][0]['text_en']
 	returnArr={}
 	tweets=[]
 	locations=[]
+	if response['response']['numFound']==0:
+		return  make_response(jsonify({'status':200,'numFound':0}))
+
 	for tweet in response['response']['docs']:
 		tempd={}
-		tempd['text']=tweet['text_'+language_id]
+		if 'text_'+language_id in tweet:
+			tempd['text']=tweet['text_'+language_id]
+		elif 'text_en' in tweet:
+			tempd['text']=tweet['text_en']
+		elif 'text_fr' in tweet:
+			tempd['text']=tweet['text_fr']
+		elif 'text_ar' in tweet:
+			tempd['text']=tweet['text_ar']
+		elif 'text_ru' in tweet:
+			tempd['text']=tweet['text_ru']
 		tempd['user_dp']=tweet['user_dp']
 		tempd['user_name']=tweet['user_name']
+		tempd['retweet_count']=tweet['retweet_count']
+		tempd['followers_count']=tweet['followers_count']
+		tempd['favorite_count']=tweet['favorite_count']
+		d={}
+		for i in xrange(len(tweet['ent_type'])):
+			d[tweet['ent_type'][i]]=tweet['entities'][i]
+		tempd['entities']=d
+		if float(tweet['sentiment']) >0:
+			tempd['sentiment']= "Positive"
+		elif float(tweet['sentiment']) <0:
+			tempd['sentiment'] ="Negative"
+		else:
+			tempd['sentiment']="Neutral"
 		tweets.append(tempd)
 		if tweet['locationCoordinates'] and len(tweet['locationCoordinates'])==2:
 			locations.append([float(tweet['locationCoordinates'][0]),float(tweet['locationCoordinates'][1])])
 	returnArr['tweets']=tweets
 	returnArr['locations']=locations
-	#returnArr['people']=people
-	#returnArr['relate_terms']=relatedterms
-	return make_response(json.dumps(returnArr))
-
-@app.route('/searchRank', methods=['GET'])
-def searchRank():
-	query = request.args.get('q')
-	rowno = request.args.get('row')
-	b = TextBlob(u""+query+"")
-	language_id = b.detect_language()
-
-	connection = requests.get('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*'+query+'*&rows=10000&start=0&sort=rank desc&qf=text_'+ language_id +'^1+hashtags^1+concept^0.1+keywords^1&wt=json&facet=true&facet.field=text_'+language_id)
-	# connection = requests.get('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*paris*&rows=1&start=1&sort=name asc&qf=text_en^1+hashtags^1+concept^0.1+keywords^1&wt=json&facet=true&facet.field=text_en')
-	response = json.loads(json.dumps(connection.json()))
-	# print json.loads(json.dumps(response))['response']['docs'][0]['text_en']
-	returnArr={}
-	tweets=[]
-	locations=[]
-	for tweet in response['response']['docs']:
-		tempd={}
-		tempd['text']=tweet['text_'+language_id]
-		tempd['user_dp']=tweet['user_dp']
-		tempd['user_name']=tweet['user_name']
-		tweets.append(tempd)
-		if tweet['locationCoordinates'] and len(tweet['locationCoordinates'])==2:
-			locations.append([float(tweet['locationCoordinates'][0]),float(tweet['locationCoordinates'][1])])
-	returnArr['tweets']=tweets
-	returnArr['locations']=locations
-	#returnArr['people']=people
-	#returnArr['relate_terms']=relatedterms
+	# returnArr['facet_fields']=response['facet_counts']['facet_fields']
 	return make_response(json.dumps(returnArr))
 
 
