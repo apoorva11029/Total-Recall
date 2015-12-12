@@ -81,6 +81,46 @@ def search():
 	return make_response(json.dumps(returnArr))
 
 
+@app.route('/trendingTopics', methods=['GET'])
+def trendingTopics():
+	query = request.args.get('q')
+	rowno = request.args.get('row')
+	b = TextBlob(u""+query+"")
+	language_id=""
+	connection = requests.get('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*'+query+'*&rows=10000&start=0&sort=retweet_count+desc%2Ccreated_at+desc&qf=text_en^1+hashtags^1+concept^0.1+keywords^1&wt=json&facet=true&facet.field=text_en')
+	response = json.loads(json.dumps(connection.json()))
+	# print json.loads(json.dumps(response))['response']['docs'][0]['text_en']
+	returnArr={}
+	tweets=[]
+	locations=[]
+	for tweet in response['response']['docs']:
+		tempd={}
+		tempd['text']=tweet['text_en']
+		tempd['user_dp']=tweet['user_dp']
+		tempd['user_name']=tweet['user_name']
+		tempd['retweet_count']=tweet['retweet_count']
+		tempd['followers_count']=tweet['followers_count']
+		tempd['favorite_count']=tweet['favorite_count']
+		d={}
+		for i in xrange(len(tweet['ent_type'])):
+			d[tweet['ent_type'][i]]=tweet['entities'][i]
+		tempd['entities']=d
+		if float(tweet['sentiment']) >0:
+			tempd['sentiment']= "Positive"
+		elif float(tweet['sentiment']) <0:
+			tempd['sentiment'] ="Negative"
+		else:
+			tempd['sentiment']="Neutral"
+		tweets.append(tempd)
+		if tweet['locationCoordinates'] and len(tweet['locationCoordinates'])==2:
+			locations.append([float(tweet['locationCoordinates'][0]),float(tweet['locationCoordinates'][1])])
+	returnArr['tweets']=tweets
+	returnArr['locations']=locations
+	# returnArr['facet_fields']=response['facet_counts']['facet_fields']
+	return make_response(json.dumps(returnArr))
+
+
+
 # @app.route('/search/<string:query>', methods=['GET'])
 # def search(query):
 # 	#gs = goslate.Goslate()
