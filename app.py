@@ -69,7 +69,15 @@ def search():
 			locations.append([float(tweet['locationCoordinates'][0]),float(tweet['locationCoordinates'][1])])
 	returnArr['tweets']=tweets
 	returnArr['locations']=locations
-	# returnArr['facet_fields']=response['facet_counts']['facet_fields']
+	facet=[]
+	for x in response['facet_counts']['facet_fields']['text_en']:
+		if type(x)==int or ("https" in x) or ("RT" in x) or ("rt" in x) or x==query:
+			continue
+		if len(facet)>=10:
+			break
+		facet.append(x)
+
+	returnArr['facet_fields']=facet
 	return make_response(json.dumps(returnArr))
 
 
