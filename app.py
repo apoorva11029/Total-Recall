@@ -69,7 +69,12 @@ def search():
 	returnArr['tweets']=tweets
 	returnArr['locations']=locations
 	facet=[]
-	for x in response['facet_counts']['facet_fields']['text']:
+	temp=""
+	if language_id:
+		temp='text_'+language_id
+	else:
+		temp='text'
+	for x in response['facet_counts']['facet_fields'][temp]:
 		if type(x)==int or ("https" in x) or ("RT" in x) or ("rt" in x) or x==query or x.isdigit():
 			continue
 		if len(facet)>=10:
