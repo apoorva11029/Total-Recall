@@ -99,6 +99,22 @@ def trendingTopics():
 	returnArr['trending']=trending
 	return make_response(json.dumps(returnArr))
 
+@app.route('/trendingCloud', methods=['GET'])
+def trendingCloud():
+	connection = requests.get('http://athigale.koding.io:8983/solr/projc/select?q=*%3A*&sort=retweet_count+desc%2Ccreated_at+desc&start=0&rows=1000&wt=json&indent=true&facet=true&facet.field=text')
+	response = json.loads(json.dumps(connection.json()))
+	returnArr={}
+	trending=[]
+	facetdict=response['facet_counts']['facet_fields']['text']
+	for x in xrange(0,len(facetdict),2):
+		if ("https" in facetdict[x]) or ("RT" in facetdict[x]) or ("rt" in facetdict[x]):
+			continue
+		if len(trending)>=50:
+			break
+		trending.append({'text':facetdict[x],'weight':facetdict[x+1]})
+	returnArr['trending']=trending
+	return make_response(json.dumps(returnArr))
+
 @app.errorhandler(404)
 def not_found(error):
     return make_response(jsonify({'error': 'Not found'}), 404)
