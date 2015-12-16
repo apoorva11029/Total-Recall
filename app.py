@@ -51,7 +51,8 @@ def search():
 		tempd['retweet_count']=tweet['retweet_count']
 		tempd['followers_count']=tweet['followers_count']
 		tempd['favorite_count']=tweet['favorite_count']
-		if 'ent_type' in tweets:
+		tempd['date']=tweet['created_at']
+		if 'ent_type' in tweet:
 			d={}
 			for i in xrange(len(tweet['ent_type'])):
 				d[tweet['ent_type'][i]]=tweet['entities'][i]
@@ -68,7 +69,12 @@ def search():
 	returnArr['tweets']=tweets
 	returnArr['locations']=locations
 	facet=[]
-	for x in response['facet_counts']['facet_fields']['text_en']:
+	temp=""
+	if language_id:
+		temp='text_'+language_id
+	else:
+		temp='text'
+	for x in response['facet_counts']['facet_fields'][temp]:
 		if type(x)==int or ("https" in x) or ("RT" in x) or ("rt" in x) or x==query or x.isdigit():
 			continue
 		if len(facet)>=10:
@@ -80,16 +86,32 @@ def search():
 
 @app.route('/trendingTopics', methods=['GET'])
 def trendingTopics():
-	connection = requests.get('http://athigale.koding.io:8983/solr/projc/select?q=*%3A*&sort=retweet_count+desc%2Ccreated_at+desc&start=0&rows=1000&wt=json&indent=true&facet=true&facet.field=text_en')
+	connection = requests.get('http://athigale.koding.io:8983/solr/projc/select?q=*%3A*&sort=retweet_count+desc%2Ccreated_at+desc&start=0&rows=1000&wt=json&indent=true&facet=true&facet.field=text')
 	response = json.loads(json.dumps(connection.json()))
 	returnArr={}
 	trending=[]
-	for x in response['facet_counts']['facet_fields']['text_en']:
+	for x in response['facet_counts']['facet_fields']['text']:
 		if type(x)==int or ("https" in x) or ("RT" in x) or ("rt" in x) or x.isdigit():
 			continue
 		if len(trending)>=10:
 			break
 		trending.append(x)
+	returnArr['trending']=trending
+	return make_response(json.dumps(returnArr))
+
+@app.route('/trendingCloud', methods=['GET'])
+def trendingCloud():
+	connection = requests.get('http://athigale.koding.io:8983/solr/projc/select?q=*%3A*&sort=retweet_count+desc%2Ccreated_at+desc&start=0&rows=1000&wt=json&indent=true&facet=true&facet.field=text')
+	response = json.loads(json.dumps(connection.json()))
+	returnArr={}
+	trending=[]
+	facetdict=response['facet_counts']['facet_fields']['text']
+	for x in xrange(0,len(facetdict),2):
+		if ("https" in facetdict[x]) or ("RT" in facetdict[x]) or ("rt" in facetdict[x]):
+			continue
+		if len(trending)>=50:
+			break
+		trending.append({'text':facetdict[x],'weight':facetdict[x+1]})
 	returnArr['trending']=trending
 	return make_response(json.dumps(returnArr))
 
