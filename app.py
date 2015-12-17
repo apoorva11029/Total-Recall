@@ -26,7 +26,7 @@ def search():
 	flag=0
 	try:
 		language_id = b.detect_language()
-		connection = requests.get('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*'+query+'*&rows=10000&start=0&sort=rank+desc&qf=text_'+ language_id +'^1+hashtags^1+concept^0.1+keywords^1&wt=json&facet=true&facet.field=text_'+language_id)
+		connection = requests.get('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*'+query+'*&rows=10000&start=0&sort=rank+desc&qf=text_'+ language_id +'^1+hashtags^1+concept^0.1+keywords^1&wt=json&facet=true&facet.field=text')
 		flag=1
 	except Exception:
 		connection = requests.get('http://athigale.koding.io:8983/solr/projc/select?defType=dismax&q=*'+query+'*&rows=10000&start=0&sort=rank+desc&qf=text^1+hashtags^1+concept^0.1+keywords^1&wt=json&facet=true&facet.field=text')
@@ -74,11 +74,11 @@ def search():
 	returnArr['locations']=locations
 	facet=[]
 	temp=""
-	if flag:
-		temp='text_'+language_id
-	else:
-		temp='text'
-	for x in response['facet_counts']['facet_fields'][temp]:
+	# if flag:
+	# 	temp='text_'+language_id
+	# else:
+	# 	temp='text'
+	for x in response['facet_counts']['facet_fields']['text']:
 		if type(x)==int or ("https" in x) or ("RT" in x) or ("rt" in x) or x==query or x.isdigit():
 			continue
 		if len(facet)>=10:
