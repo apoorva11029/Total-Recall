@@ -46,8 +46,10 @@ def search():
 			tempd['text']=tweet['text_ar']
 		elif 'text_ru' in tweet:
 			tempd['text']=tweet['text_ru']
-		tempd['user_dp']=tweet['user_dp']
-		tempd['user_name']=tweet['user_name']
+		if 'user_dp' in tweet:
+			tempd['user_dp']=tweet['user_dp']
+		if 'user_name' in tweet:
+			tempd['user_name']=tweet['user_name']
 		tempd['retweet_count']=tweet['retweet_count']
 		tempd['followers_count']=tweet['followers_count']
 		tempd['favorite_count']=tweet['favorite_count']
